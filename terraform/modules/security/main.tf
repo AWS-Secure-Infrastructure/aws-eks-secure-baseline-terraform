@@ -51,3 +51,62 @@ resource "aws_iam_role" "example_irsa_role" {
     }]
   })
 }
+
+resource "kubernetes_manifest" "constraint_template" {
+  manifest = {
+    apiVersion = "templates.gatekeeper.sh/v1beta1"
+    kind       = "ConstraintTemplate"
+    metadata = {
+      name = "k8srequiredresources"
+    }
+    spec = {
+      crd = {
+        spec = {
+          names = {
+            kind = "K8sRequiredResources"
+          }
+        }
+      }
+      targets = [{
+        target = "admission.k8s.gatekeeper.sh"
+        rego   = <<EOF
+package k8srequiredresources
+
+violation[{"msg": msg}] {
+  container := input.review.object.spec.containers[_]
+  not container.resources.limits.cpu
+  msg := "CPU limit is required"
+}
+
+violation[{"msg": msg}] {
+  container := input.review.object.spec.containers[_]
+  not container.resources.limits.memory
+  msg := "Memory limit is required"
+}
+EOF
+      }]
+    }
+  }
+
+  depends_on = [helm_release.gatekeeper]
+}
+
+resource "kubernetes_manifest" "require_limits" {
+  manifest = {
+    apiVersion = "constraints.gatekeeper.sh/v1beta1"
+    kind       = "K8sRequiredResources"
+    metadata = {
+      name = "require-resource-limits"
+    }
+    spec = {
+      match = {
+        kinds = [{
+          apiGroups = [""]
+          kinds     = ["Pod"]
+        }]
+      }
+    }
+  }
+
+  depends_on = [kubernetes_manifest.constraint_template]
+}
