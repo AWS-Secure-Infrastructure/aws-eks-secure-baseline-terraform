@@ -24,7 +24,7 @@ resource "aws_subnet" "public_a" {
 
   tags = {
     Name = "${var.project_name}-public-a"
-  }
+  "kubernetes.io/role/elb" = "1"
 }
 
 resource "aws_subnet" "public_b" {
@@ -35,7 +35,7 @@ resource "aws_subnet" "public_b" {
 
   tags = {
     Name = "${var.project_name}-public-b"
-  }
+  "kubernetes.io/role/elb" = "1"
 }
 
 data "aws_availability_zones" "available" {}
@@ -47,7 +47,7 @@ resource "aws_subnet" "private_a" {
 
   tags = {
     Name = "${var.project_name}-private-a"
-  }
+  "kubernetes.io/role/internal-elb" = "1"
 }
 
 resource "aws_subnet" "private_b" {
@@ -57,7 +57,7 @@ resource "aws_subnet" "private_b" {
 
   tags = {
     Name = "${var.project_name}-private-b"
-  }
+  "kubernetes.io/role/internal-elb" = "1"
 }
 
 resource "aws_eip" "nat" {
