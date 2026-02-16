@@ -31,3 +31,23 @@ resource "helm_release" "gatekeeper" {
 
   create_namespace = true
 }
+
+resource "aws_iam_role" "example_irsa_role" {
+  name = "example-irsa-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = module.eks.oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringLike = {
+          "${replace(module.eks.oidc_provider_url, "https://", "")}:sub" = "system:serviceaccount:secure-apps:example-sa"
+        }
+      }
+    }]
+  })
+}
