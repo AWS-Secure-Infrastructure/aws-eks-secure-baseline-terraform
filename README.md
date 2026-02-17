@@ -8,7 +8,9 @@ It is designed to demonstrate practical EKS security architecture — not a lab 
 
 ---
 
-## Architecture Overview
+## Architecture Design
+
+![VPC Architecture](diagram.png)
 
 The baseline provisions:
 
