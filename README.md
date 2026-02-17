@@ -1,119 +1,72 @@
 # AWS EKS Secure Baseline (Terraform)
 
-Production-oriented EKS baseline built with Terraform, implementing private control plane access, private worker nodes, IRSA (IAM Roles for Service Accounts), namespace isolation, default-deny networking, and OPA Gatekeeper policy enforcement.
+Production-oriented Terraform implementation of a secure Amazon EKS baseline architecture.
 
-This repository demonstrates a secure-by-default Kubernetes cluster foundation aligned with modern cloud security and platform engineering practices.
+This project provisions a hardened Kubernetes control plane and worker environment inside a multi-AZ VPC, applying security best practices across networking, identity, and policy enforcement layers.
 
----
-
-## Overview
-
-This project provisions a hardened Amazon EKS cluster and applies foundational security controls at:
-
-- Network layer
-- Control plane layer
-- Node layer
-- Namespace layer
-- Admission control layer
-- Policy enforcement layer
-
-The focus is not on application deployment, but on establishing a secure Kubernetes baseline suitable for production environments.
+It is designed to demonstrate practical EKS security architecture — not a lab walkthrough.
 
 ---
 
-## Architecture Design
+## Architecture Overview
 
-![VPC Architecture](diagram.png)
+The baseline provisions:
 
-**Infrastructure Layer**
-- Custom VPC
-- Public and private subnets
-- NAT gateway
-- Tagged subnets for Kubernetes load balancing
+- **AWS Account boundary**
+- **VPC with public and private subnets (Multi-AZ)**
+- **NAT Gateway in public subnet**
+- **Private EKS worker nodes (Managed Node Group)**
+- **Amazon EKS Control Plane (Managed)**
+- **OIDC Provider for IRSA**
+- **OPA Gatekeeper for policy enforcement**
+- **Terraform as the provisioning layer**
 
-**Cluster Layer**
-- Amazon EKS cluster
-- Private API endpoint access only
-- Managed node group in private subnets
-- OIDC provider enabled for IRSA
+High-level security principles applied:
 
-**Security Baseline**
-- Restricted Pod Security Admission
-- Dedicated secure namespace
-- Default-deny NetworkPolicy
-- OPA Gatekeeper installed via Helm
-- Resource governance constraint (CPU & memory limits required)
-
----
-
-## Security Design Principles
-
-### 1. Private Control Plane
-The EKS API endpoint is configured with:
-- `endpoint_private_access = true`
-- `endpoint_public_access  = false`
-
-The control plane is not exposed publicly.
+- Private worker nodes only (no public exposure)
+- IAM Roles for Service Accounts (IRSA)
+- Namespace-level isolation
+- Network policies
+- Policy-as-Code enforcement
+- Infrastructure fully managed via Terraform
 
 ---
 
-### 2. Private Worker Nodes
-Managed node groups are deployed in private subnets.
-Outbound access is provided via NAT.
+## Security Controls Implemented
 
-Nodes are not directly internet-facing.
+### 1. Network Isolation
 
----
+- Public subnet used only for NAT Gateway.
+- Worker nodes deployed exclusively in private subnets.
+- Multi-AZ private subnet design.
+- No direct public workload exposure.
+
+### 2. EKS Control Plane (Managed)
+
+- AWS-managed control plane.
+- Kubernetes RBAC enforced at cluster level.
+- Namespace-level workload separation.
 
 ### 3. IAM Roles for Service Accounts (IRSA)
 
-An OIDC provider is configured for the cluster, enabling:
+- OIDC provider configured for the cluster.
+- Pod-level IAM role binding.
+- Eliminates node-level over-permissioning.
+- Enables least-privilege access to AWS services.
 
-- Fine-grained IAM permissions per Kubernetes ServiceAccount
-- Elimination of node-wide IAM over-privileging
-- Secure pod-level identity
+### 4. Policy Enforcement with OPA Gatekeeper
 
-This aligns with AWS-recommended Kubernetes identity patterns.
+- Gatekeeper deployed in-cluster.
+- Constraint templates and constraints defined via Terraform.
+- Example enforcement: required resource limits.
+- Prevents non-compliant workloads at admission time.
 
----
+### 5. Infrastructure as Code
 
-### 4. Namespace Security Baseline
-
-A dedicated `secure-apps` namespace is created with:
-
-- Pod Security Admission (`restricted` mode)
-- Enforced least-privilege container settings
-
-This prevents:
-- Privileged containers
-- Host networking
-- Unsafe capabilities
-
----
-
-### 5. Network Isolation
-
-A default-deny NetworkPolicy is applied:
-
-- Blocks all ingress and egress by default
-- Enforces explicit communication rules
-- Prevents lateral movement
-
----
-
-### 6. Policy as Code (OPA Gatekeeper)
-
-OPA Gatekeeper is installed via Helm.
-
-A custom ConstraintTemplate and Constraint enforce:
-
-- All Pods must define CPU limits
-- All Pods must define memory limits
-
-This ensures:
-- Resource governance
-- Controlled scheduling behavior
-- Reduced risk of noisy neighbor issues
+- All infrastructure provisioned using Terraform.
+- Modular structure for reproducibility.
+- Remote state supported (S3 + DynamoDB locking recommended).
+- Declarative, version-controlled security posture.
 
 ---
 
@@ -121,40 +74,54 @@ This ensures:
 
 ```
 terraform/
-├── modules/
-│ ├── vpc/
-│ ├── eks/
-│ └── security/
-│
-└── environments/
-└── prod/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+└── modules/
+└── security/
 ```
 
-The design follows a modular Terraform structure with environment separation.
+- Core infrastructure defined in root.
+- Security-specific components modularized.
+- Kubernetes manifests managed via `kubernetes_manifest` resources.
 
 ---
 
-## What This Repository Demonstrates
+## What This Project Demonstrates
 
-- Secure EKS provisioning with Terraform
-- Network-aware Kubernetes architecture
-- Private-by-default cluster posture
-- IRSA implementation for workload identity
-- Namespace-level isolation
-- Policy-as-Code enforcement
-- Cloud-native security controls aligned with DevSecOps practices
+This repository reflects production-relevant concerns for Kubernetes platforms:
 
-This repository represents a secure Kubernetes baseline, not a tutorial or lab environment.
+- Secure VPC segmentation
+- Private EKS worker architecture
+- Identity federation via OIDC
+- IRSA implementation
+- Admission control with Gatekeeper
+- Policy-driven workload enforcement
+- Clean infrastructure layering
+
+It intentionally avoids unnecessary complexity (Ingress, ALB, service mesh) to keep focus on the baseline security model.
 
 ---
 
-## Intended Use
+## Target Audience
 
-This baseline can serve as:
+Cloud Engineer  
+Platform Engineer  
+DevOps Engineer  
+Junior SRE  
 
-- A starting point for secure Kubernetes platforms
-- A reference architecture for hardened EKS deployments
-- A foundation for GitOps or CI/CD-based application delivery
+Particularly relevant for teams operating Kubernetes in AWS environments and seeking security-first cluster baselines.
+
+---
+
+## Future Improvements
+
+- Private API endpoint configuration
+- Cluster logging integration (CloudWatch)
+- Managed add-ons configuration via Terraform
+- Security group hardening
+- Pod Security Standards enforcement profiles
+- Multi-environment (dev/stage/prod) structure
 
 ---
 
