@@ -21,7 +21,9 @@ The focus is not on application deployment, but on establishing a secure Kuberne
 
 ---
 
-## Architecture
+## Architecture Design
+
+![VPC Architecture](diagram.png)
 
 **Infrastructure Layer**
 - Custom VPC
